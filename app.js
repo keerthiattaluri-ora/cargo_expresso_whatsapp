@@ -70,6 +70,20 @@ app.post("/", (req, res) => {
 });
 
 // --------------------
+// DOWNLOAD LOG FILE
+// --------------------
+app.get("/download-logs", (req, res) => {
+  const logPath = path.join(__dirname, "logs", "whatsapp_logs.txt");
+
+  if (!fs.existsSync(logPath)) {
+    return res.status(404).send("Log file not found");
+  }
+
+  res.download(logPath, "whatsapp_logs.txt");
+});
+
+
+// --------------------
 // START SERVER
 // --------------------
 app.listen(port, () => {
