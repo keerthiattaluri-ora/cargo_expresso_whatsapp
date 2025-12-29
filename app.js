@@ -52,38 +52,50 @@ app.get("/", (req, res) => {
 // --------------------
 app.post("/", (req, res) => {
   try {
-    const msg =
-      req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    const messages =
+      req.body.entry?.[0]?.changes?.[0]?.value?.messages || [];
 
-    if (!msg) {
-      return res.sendStatus(200);
-    }
+    for (const msg of messages) {
+      let messageText = "";
 
-    let messageText = "";
-
-    // TEXT MESSAGE
-    if (msg.type === "text") {
-      messageText = msg.text?.body;
-    }
-
-    // BUTTON / LIST REPLY
-    if (msg.type === "interactive") {
-      if (msg.interactive.type === "button_reply") {
-        messageText = msg.interactive.button_reply.title;
+      // --------------------
+      // TEXT MESSAGE
+      // --------------------
+      if (msg.type === "text") {
+        messageText = msg.text?.body;
       }
 
-      if (msg.interactive.type === "list_reply") {
-        messageText = msg.interactive.list_reply.title;
+      // --------------------
+      // BUTTON / LIST REPLY
+      // --------------------
+      if (msg.type === "interactive") {
+        if (msg.interactive?.button_reply) {
+          messageText = msg.interactive.button_reply.title;
+        }
+
+        if (msg.interactive?.list_reply) {
+          messageText = msg.interactive.list_reply.title;
+        }
+      }
+
+      // --------------------
+      // IMAGE MESSAGE
+      // --------------------
+      if (msg.type === "image") {
+        const caption = msg.image?.caption || "";
+        const mediaId = msg.image?.id;
+
+        if (mediaId) {
+          messageText = `IMAGE | caption="${caption}" | mediaId=${mediaId}`;
+        }
+      }
+
+      if (messageText) {
+        saveToTextFile(msg, messageText);
+        console.log("Saved WhatsApp message:", messageText);
       }
     }
 
-    if (!messageText) {
-      return res.sendStatus(200);
-    }
-
-    saveToTextFile(msg, messageText);
-
-    console.log("Saved WhatsApp response:", messageText);
     res.sendStatus(200);
   } catch (err) {
     console.error("Webhook error:", err);
