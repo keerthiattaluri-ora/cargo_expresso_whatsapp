@@ -8,7 +8,7 @@ const express = require("express");
 const LOG_DIR = "logs";
 const LOG_FILE = path.join(LOG_DIR, "whatsapp_logs.txt");
 
-function saveToTextFile(msg) {
+function saveToTextFile(msg, messageText) {
   if (!fs.existsSync(LOG_DIR)) {
     fs.mkdirSync(LOG_DIR);
   }
@@ -16,7 +16,8 @@ function saveToTextFile(msg) {
   const line =
     `[${new Date().toISOString()}] ` +
     `FROM=${msg.from} | ` +
-    `MESSAGE="${msg.text?.body}"\n`;
+    `TYPE=${msg.type} | ` +
+    `MESSAGE="${messageText}"\n`;
 
   fs.appendFileSync(LOG_FILE, line, "utf8");
 }
@@ -54,14 +55,35 @@ app.post("/", (req, res) => {
     const msg =
       req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-    if (!msg || msg.type !== "text") {
+    if (!msg) {
       return res.sendStatus(200);
     }
 
-    // SAVE MESSAGE TO TEXT FILE ✅
-    saveToTextFile(msg);
+    let messageText = "";
 
-    console.log("Saved WhatsApp message to text file");
+    // TEXT MESSAGE
+    if (msg.type === "text") {
+      messageText = msg.text?.body;
+    }
+
+    // BUTTON / LIST REPLY
+    if (msg.type === "interactive") {
+      if (msg.interactive.type === "button_reply") {
+        messageText = msg.interactive.button_reply.title;
+      }
+
+      if (msg.interactive.type === "list_reply") {
+        messageText = msg.interactive.list_reply.title;
+      }
+    }
+
+    if (!messageText) {
+      return res.sendStatus(200);
+    }
+
+    saveToTextFile(msg, messageText);
+
+    console.log("Saved WhatsApp response:", messageText);
     res.sendStatus(200);
   } catch (err) {
     console.error("Webhook error:", err);
@@ -81,7 +103,6 @@ app.get("/download-logs", (req, res) => {
 
   res.download(logPath, "whatsapp_logs.txt");
 });
-
 
 // --------------------
 // START SERVER
