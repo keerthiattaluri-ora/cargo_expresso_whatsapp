@@ -57,7 +57,7 @@ app.get("/", (req, res) => {
 // ==================================================
 app.post("/", (req, res) => {
   try {
-    // 🔹 Log RAW Meta payload to Render logs
+    // 🔹 Always log raw Meta payload to Render logs
     console.log(
       "RAW META WEBHOOK PAYLOAD:\n",
       JSON.stringify(req.body, null, 2)
@@ -77,7 +77,15 @@ app.post("/", (req, res) => {
       }
 
       // --------------------
-      // BUTTON / LIST REPLY
+      // TEMPLATE BUTTON (YES / NO) ✅
+      // --------------------
+      if (msg.type === "button") {
+        // WhatsApp template quick-reply buttons
+        messageText = msg.button?.text || msg.button?.payload;
+      }
+
+      // --------------------
+      // INTERACTIVE (newer buttons / lists)
       // --------------------
       if (msg.type === "interactive") {
         if (msg.interactive?.button_reply) {
@@ -105,12 +113,12 @@ app.post("/", (req, res) => {
       // SAVE + LOG
       // --------------------
       if (messageText) {
-        // Log to Render logs
+        // Visible in Render Logs
         console.log(
           `WHATSAPP MESSAGE RECEIVED | FROM=${msg.from} | TYPE=${msg.type} | MESSAGE=${messageText}`
         );
 
-        // Save to file
+        // Saved to file
         saveToTextFile(msg, messageText);
       }
     }
