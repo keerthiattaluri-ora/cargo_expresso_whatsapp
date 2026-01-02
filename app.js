@@ -2,17 +2,22 @@ const fs = require("fs");
 const path = require("path");
 const express = require("express");
 
-// --------------------
+// ==================================================
 // FILE LOGGING SETUP
-// --------------------
+// ==================================================
 const LOG_DIR = "logs";
 const LOG_FILE = path.join(LOG_DIR, "whatsapp_logs.txt");
 
-function saveToTextFile(msg, messageText) {
-  if (!fs.existsSync(LOG_DIR)) {
-    fs.mkdirSync(LOG_DIR);
-  }
+// Ensure log directory & file exist on startup
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR);
+}
 
+if (!fs.existsSync(LOG_FILE)) {
+  fs.writeFileSync(LOG_FILE, "", "utf8");
+}
+
+function saveToTextFile(msg, messageText) {
   const line =
     `[${new Date().toISOString()}] ` +
     `FROM=${msg.from} | ` +
@@ -22,18 +27,18 @@ function saveToTextFile(msg, messageText) {
   fs.appendFileSync(LOG_FILE, line, "utf8");
 }
 
-// --------------------
+// ==================================================
 // EXPRESS APP
-// --------------------
+// ==================================================
 const app = express();
 app.use(express.json());
 
 const port = process.env.PORT || 3000;
 const verifyToken = process.env.VERIFY_TOKEN;
 
-// --------------------
-// WEBHOOK VERIFY (GET)
-// --------------------
+// ==================================================
+// WEBHOOK VERIFY (GET /)
+// ==================================================
 app.get("/", (req, res) => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
@@ -47,11 +52,17 @@ app.get("/", (req, res) => {
   return res.sendStatus(403);
 });
 
-// --------------------
-// WEBHOOK RECEIVE (POST)
-// --------------------
+// ==================================================
+// WEBHOOK RECEIVE (POST /)
+// ==================================================
 app.post("/", (req, res) => {
   try {
+    // 🔹 Log RAW Meta payload to Render logs
+    console.log(
+      "RAW META WEBHOOK PAYLOAD:\n",
+      JSON.stringify(req.body, null, 2)
+    );
+
     const messages =
       req.body.entry?.[0]?.changes?.[0]?.value?.messages || [];
 
@@ -90,9 +101,17 @@ app.post("/", (req, res) => {
         }
       }
 
+      // --------------------
+      // SAVE + LOG
+      // --------------------
       if (messageText) {
+        // Log to Render logs
+        console.log(
+          `WHATSAPP MESSAGE RECEIVED | FROM=${msg.from} | TYPE=${msg.type} | MESSAGE=${messageText}`
+        );
+
+        // Save to file
         saveToTextFile(msg, messageText);
-        console.log("Saved WhatsApp message:", messageText);
       }
     }
 
@@ -103,22 +122,20 @@ app.post("/", (req, res) => {
   }
 });
 
-// --------------------
+// ==================================================
 // DOWNLOAD LOG FILE
-// --------------------
+// ==================================================
 app.get("/download-logs", (req, res) => {
-  const logPath = path.join(__dirname, "logs", "whatsapp_logs.txt");
-
-  if (!fs.existsSync(logPath)) {
+  if (!fs.existsSync(LOG_FILE)) {
     return res.status(404).send("Log file not found");
   }
 
-  res.download(logPath, "whatsapp_logs.txt");
+  res.download(LOG_FILE, "whatsapp_logs.txt");
 });
 
-// --------------------
+// ==================================================
 // START SERVER
-// --------------------
+// ==================================================
 app.listen(port, () => {
-  console.log(`Listening on port ${port}`);
+  console.log(`WhatsApp webhook server listening on port ${port}`);
 });
