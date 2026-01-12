@@ -16,16 +16,18 @@ if (!fs.existsSync(LOG_DIR)) {
 if (!fs.existsSync(LOG_FILE)) {
   fs.writeFileSync(LOG_FILE, "", "utf8");
 }
-
 function saveToTextFile(msg, messageText) {
   const line =
     `[${new Date().toISOString()}] ` +
-    `FROM=${msg.from} | ` +
+    `MESSAGE_ID=${msg.id || "N/A"} | ` +
+    `FROM=${msg.from || "N/A"} | ` +
+    `TIMESTAMP=${msg.timestamp || "N/A"} | ` +
     `TYPE=${msg.type} | ` +
     `MESSAGE="${messageText}"\n`;
 
   fs.appendFileSync(LOG_FILE, line, "utf8");
 }
+
 
 // ==================================================
 // EXPRESS APP
@@ -115,8 +117,17 @@ app.post("/", (req, res) => {
       if (messageText) {
         // Visible in Render Logs
         console.log(
-          `WHATSAPP MESSAGE RECEIVED | FROM=${msg.from} | TYPE=${msg.type} | MESSAGE=${messageText}`
+          `WHATSAPP MESSAGE RECEIVED | ` +
+          `ID=${msg.id} | ` +
+          `FROM=${msg.from} | ` +
+          `TYPE=${msg.type} | ` +
+          `MESSAGE=${messageText}`
         );
+
+
+        // console.log(
+        //   `WHATSAPP MESSAGE RECEIVED | FROM=${msg.from} | TYPE=${msg.type} | MESSAGE=${messageText}`
+        // );
 
         // Saved to file
         saveToTextFile(msg, messageText);
