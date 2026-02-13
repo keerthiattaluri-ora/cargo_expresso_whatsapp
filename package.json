@@ -1,0 +1,12 @@
+{
+  "name": "cargo-expresso-whatsapp",
+  "version": "1.0.0",
+  "description": "Meta WhatsApp webhook server",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
